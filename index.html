@@ -821,7 +821,7 @@
                 room: '02 點位',
                 roomCode: '02',
                 img: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/46/Venezia_Palazzo_Ducale_Innenhof_Scala_dei_Giganti_3.jpg/1920px-Venezia_Palazzo_Ducale_Innenhof_Scala_dei_Giganti_3.jpg?utm_source=commons.wikimedia.org&utm_campaign=index&utm_content=thumbnail&_=20181101174708',
-                audioText: '進入總督宮後，先不要急著往裡走。這座內庭，是整座宮殿不同時代建築風格交會的地方。總督“宮本身融合了威尼斯哥德式、拜占庭與文藝復興元素，而內庭正好能看出這種演變。最醒目的是前方的巨人階梯 Scala dei Giganti。階梯上方矗立著桑索維諾設計的火星與海神尼普頓雕像，分別象徵威尼斯在陸地與海上的力量。所以這裡不只是漂亮的庭院，而是一個很有意義的入口：從城市公共空間，正式進入威尼斯共和國的權力核心。',
+                audioText: '進入總督“宮後，先不要急著往裡走。這座內庭，是整座宮殿不同時代建築風格交會的地方。總督“宮本身融合了威尼斯哥德式、拜占庭與文藝復興元素，而內庭正好能看出這種演變。最醒目的是前方的巨人階梯 Scala dei Giganti。階梯上方矗立著桑索維諾設計的火星與海神尼普頓雕像，分別象徵威尼斯在陸地與海上的力量。所以這裡不只是漂亮的庭院，而是一個很有意義的入口：從城市公共空間，正式進入威尼斯共和國的權力核心。',
                 highlights: [
                     '抬頭看內庭四周不同年代的立面。',
                     '找到巨人階梯。',
@@ -1515,7 +1515,7 @@
             if (thumb) thumb.src = currentArtwork.img;
             if (title) title.innerText = currentArtwork.title;
             if (artist) artist.innerText = currentArtwork.artist;
-            if (room) room.innerText = `${currentArtwork.roomCode} 點位`;
+            if (room) room.innerText = currentArtwork.roomCode;
             
             highlightRoomOnMap(currentArtwork.roomCode);
         }
