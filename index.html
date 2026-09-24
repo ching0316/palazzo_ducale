@@ -1374,83 +1374,95 @@
             updateModalPlayIcon();
         }
 
+        /* Web Speech Synthesis (語音導覽播放系統) */
         function readAudioSpeech() {
-            if (!('speechSynthesis' in window)) return;
-            window.speechSynthesis.cancel();
-            clearInterval(speechProgressTimer);
-            playProgressPercent = 0;
-            const progressBar = document.getElementById('audio-progress-bar');
-            if (progressBar) progressBar.style.width = '0%';
-            
-            if (!currentArtwork || !currentArtwork.audioText) return;
-
-            const utterance = new SpeechSynthesisUtterance(currentArtwork.audioText);
-            utterance.lang = 'zh-TW';
-            utterance.rate = playbackSpeed;
-
-            utterance.onstart = function() {
-                isPlaying = true;
-                updateModalPlayIcon();
-                startProgressSimulation();
-            };
-
-            utterance.onend = function() {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
                 isPlaying = false;
-                clearInterval(speechProgressTimer);
-                playProgressPercent = 100;
-                if (progressBar) progressBar.style.width = '100%';
-                updateModalPlayIcon();
-            };
+                playProgressPercent = 0;
+                
+                const utterance = new SpeechSynthesisUtterance(currentArtwork.audioText);
+                utterance.lang = 'zh-TW';
+                utterance.rate = playbackSpeed;
 
-            utterance.onerror = function() {
-                isPlaying = false;
-                clearInterval(speechProgressTimer);
-                updateModalPlayIcon();
-            };
+                utterance.onstart = () => {
+                    isPlaying = true;
+                    updatePlayIcons(true);
+                    startProgressTimer();
+                    // 播放語音時確保地圖上該展廳持續閃爍
+                    highlightRoomOnMap(currentArtwork.roomCode);
+                };
 
-            window.speechSynthesis.speak(utterance);
+                utterance.onend = () => {
+                    isPlaying = false;
+                    playProgressPercent = 100;
+                    updatePlayIcons(false);
+                    stopProgressTimer();
+                };
+
+                window.speechSynthesis.speak(utterance);
+            }
         }
 
-        function startProgressSimulation() {
-            clearInterval(speechProgressTimer);
-            const textLen = currentArtwork && currentArtwork.audioText ? currentArtwork.audioText.length : 100;
-            const estimatedDuration = (textLen / (3.5 * playbackSpeed)) * 1000;
-            const interval = 200;
-            const increment = (interval / estimatedDuration) * 100;
-
-            speechProgressTimer = setInterval(() => {
-                if (isPlaying) {
-                    playProgressPercent += increment;
-                    if (playProgressPercent >= 100) {
-                        playProgressPercent = 100;
-                        clearInterval(speechProgressTimer);
+        function toggleAudioSpeech() {
+            if ('speechSynthesis' in window) {
+                if (window.speechSynthesis.speaking) {
+                    if (window.speechSynthesis.paused) {
+                        window.speechSynthesis.resume();
+                        isPlaying = true;
+                        updatePlayIcons(true);
+                        startProgressTimer();
+                    } else {
+                        window.speechSynthesis.pause();
+                        isPlaying = false;
+                        updatePlayIcons(false);
+                        stopProgressTimer();
                     }
-                    const progressBar = document.getElementById('audio-progress-bar');
-                    if (progressBar) progressBar.style.width = playProgressPercent + '%';
+                } else {
+                    readAudioSpeech();
                 }
-            }, interval);
+            }
+            // 點擊聆聽按鈕時閃爍烏菲茲實境地圖該區域
+            highlightRoomOnMap(currentArtwork.roomCode);
         }
 
-        function updateModalPlayIcon() {
-            const playIcon = document.getElementById('play-icon');
-            const modalPlayIcon = document.getElementById('modal-play-icon');
-            const iconName = isPlaying ? 'pause' : 'play';
-
-            if (playIcon) playIcon.setAttribute('data-lucide', iconName);
-            if (modalPlayIcon) modalPlayIcon.setAttribute('data-lucide', iconName);
+        function updatePlayIcons(playing) {
+            const icon1 = document.getElementById('play-icon');
+            const icon2 = document.getElementById('modal-play-icon');
+            if (playing) {
+                if (icon1) icon1.setAttribute('data-lucide', 'pause');
+                if (icon2) icon2.setAttribute('data-lucide', 'pause');
+            } else {
+                if (icon1) icon1.setAttribute('data-lucide', 'play');
+                if (icon2) icon2.setAttribute('data-lucide', 'play');
+            }
             lucide.createIcons();
         }
 
         function changeSpeed() {
-            const speeds = [1.0, 1.25, 1.5, 0.8];
-            let nextIndex = (speeds.indexOf(playbackSpeed) + 1) % speeds.length;
-            playbackSpeed = speeds[nextIndex];
-            const btn = document.getElementById('modal-speed-btn');
-            if (btn) btn.innerText = `${playbackSpeed}x 語速`;
-
+            const speeds = [1.0, 1.25, 1.5, 0.75];
+            const currIdx = speeds.indexOf(playbackSpeed);
+            playbackSpeed = speeds[(currIdx + 1) % speeds.length];
+            const speedBtn = document.getElementById('modal-speed-btn');
+            if (speedBtn) speedBtn.innerText = `${playbackSpeed}x 語速`;
             if (isPlaying) {
                 readAudioSpeech();
             }
+        }
+
+        function startProgressTimer() {
+            stopProgressTimer();
+            speechProgressTimer = setInterval(() => {
+                if (playProgressPercent < 100) {
+                    playProgressPercent += 1;
+                    const bar = document.getElementById('audio-progress-bar');
+                    if (bar) bar.style.width = `${playProgressPercent}%`;
+                }
+            }, 300);
+        }
+
+        function stopProgressTimer() {
+            if (speechProgressTimer) clearInterval(speechProgressTimer);
         }
 
         /* MAP & FLOOR INTERACTION LOGIC */
