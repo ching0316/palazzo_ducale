@@ -1491,7 +1491,7 @@
 
         function openArtworkModal() {
             if (!currentArtwork) return;
-            const modal = document.getElementById('artwork-modal');
+        
             document.getElementById('modal-image').src = currentArtwork.img;
             document.getElementById('modal-room-badge').innerText = `點位 ${currentArtwork.roomCode}`;
             document.getElementById('modal-title').innerText = currentArtwork.title;
