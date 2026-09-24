@@ -1108,9 +1108,12 @@
 
         /* Map Interactive State */
         let currentActiveFloor = '行政廳堂';
-        let mapScale = 1.0;
-        let mapPanX = 0;
-        let mapPanY = 0;
+        let mapScale = 2.0; // 預設 200% 大小
+        let mapPanX = 0;   // 置左 0 原點對齊
+        let mapPanY = 0;   // 置頂 0 原點對齊
+        let isMapDragging = false;
+        let mapDragStartX = 0;
+        let mapDragStartY = 0;
 
         /* Speech Synthesis States */
         let isPlaying = false;
