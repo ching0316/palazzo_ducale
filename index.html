@@ -691,7 +691,7 @@
                     alt="Current Point" class="w-9 h-9 rounded-lg object-cover border border-ferrari-red">
                 <div class="min-w-0 flex-1">
                     <div class="flex items-center gap-1.5">
-                        <span id="player-room" class="text-[14px] font-tech bg-ferrari-carbon border border-ferrari-red text-white px-1 rounded font-bold">01 點位</span>
+                        <span id="player-room" class="text-[14px] font-tech bg-ferrari-carbon border border-ferrari-red text-white px-1 rounded font-bold">01</span>
                         <h4 id="player-title" class="text-[15px] font-bold text-white truncate">麥稈橋</h4>
                     </div>
                     <p id="player-artist" class="text-[14px] text-gray-400 truncate">Palazzo Ducale · 威尼斯總督宮</p>
@@ -1243,7 +1243,7 @@
                     </div>
                     <div class="flex-1 min-w-0 space-y-1">
                         <div class="flex items-center justify-between">
-                            <h3 class="text-[15px] font-bold text-white truncate">${item.title}</h3>
+                            <h3 class="text-[16px] font-bold text-white truncate">${item.title}</h3>
                             <button onclick="event.stopPropagation(); toggleFavorite('${item.id}')" class="text-gray-400 hover:text-ferrari-yellow p-1">
                                 <i data-lucide="bookmark" class="w-3.5 h-3.5 ${isFav ? 'text-ferrari-yellow fill-ferrari-yellow' : ''}"></i>
                             </button>
@@ -1535,7 +1535,7 @@
             if (title) title.innerText = currentArtwork.title;
             if (artist) artist.innerText = currentArtwork.artist;
             if (year) year.innerText = currentArtwork.year;
-            if (badge) badge.innerText = `${currentArtwork.roomCode} 點位`;
+            if (badge) badge.innerText = `${currentArtwork.roomCode} `;
             if (desc) desc.innerText = currentArtwork.audioText;
 
             const highlightsContainer = document.getElementById('modal-highlights');
