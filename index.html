@@ -1107,10 +1107,10 @@
         let showFavoritesOnly = false;
 
         /* Map Interactive State */
-        let currentActiveFloor = '3F 行政與參議院廳';
-        let mapScale = 2.0; // 預設 200% 大小
-        let mapPanX = 0;   // 置左 0 原點對齊
-        let mapPanY = 0;   // 置頂 0 原點對齊
+        let currentActiveFloor = '3F';
+        let mapScale = 2.0;
+        let mapPanX = 0;
+        let mapPanY = 0;
         let isMapDragging = false;
         let mapDragStartX = 0;
         let mapDragStartY = 0;
@@ -1121,6 +1121,7 @@
         let playbackSpeed = 1.0;
         let playProgressPercent = 0;
 
+        /* Initializer */
         window.onload = function() {
             lucide.createIcons();
             renderArtworkList();
@@ -1130,29 +1131,33 @@
             
             initInteractiveMapEvents();
             if (currentArtwork) {
-                autoSwitchFloorByRoom(currentArtwork.roomCode);
+                switchMapFloor(currentArtwork.floor === '庭院與入口' ? '2F' : currentArtwork.floor === '軍事與大會議廳' ? '2F' : currentArtwork.floor === '司法監獄與動線' ? '1F' : '3F');
                 highlightRoomOnMap(currentArtwork.roomCode);
             }
         };
 
+        /* Switch Navigation Tabs */
         function switchTab(tabName) {
             currentTab = tabName;
             ['artworks', 'map', 'info'].forEach(t => {
                 const el = document.getElementById(`tab-${t}`);
                 const navBtn = document.getElementById(`nav-${t}`);
                 if (t === tabName) {
-                    el.classList.remove('hidden');
-                    navBtn.classList.add('text-ferrari-yellow');
-                    navBtn.classList.remove('text-gray-500');
+                    if (el) el.classList.remove('hidden');
+                    if (navBtn) {
+                        navBtn.classList.add('text-ferrari-yellow');
+                        navBtn.classList.remove('text-gray-500');
+                    }
                 } else {
-                    el.classList.add('hidden');
-                    navBtn.classList.remove('text-ferrari-yellow');
-                    navBtn.classList.add('text-gray-500');
+                    if (el) el.classList.add('hidden');
+                    if (navBtn) {
+                        navBtn.classList.remove('text-ferrari-yellow');
+                        navBtn.classList.add('text-gray-500');
+                    }
                 }
             });
 
             if (tabName === 'map' && currentArtwork) {
-                autoSwitchFloorByRoom(currentArtwork.roomCode);
                 highlightRoomOnMap(currentArtwork.roomCode);
             }
 
@@ -1165,8 +1170,10 @@
                 btn.classList.remove('bg-ferrari-carbon', 'text-ferrari-yellow', 'active');
                 btn.classList.add('bg-carbon-pattern', 'text-gray-300', 'border-gray-700');
             });
-            event.currentTarget.classList.add('bg-ferrari-carbon', 'text-ferrari-yellow', 'active');
-            event.currentTarget.classList.remove('bg-carbon-pattern', 'text-gray-300', 'border-gray-700');
+            if (event && event.currentTarget) {
+                event.currentTarget.classList.add('bg-ferrari-carbon', 'text-ferrari-yellow', 'active');
+                event.currentTarget.classList.remove('bg-carbon-pattern', 'text-gray-300', 'border-gray-700');
+            }
             renderArtworkList();
         }
 
@@ -1186,15 +1193,18 @@
         }
 
         function renderArtworkList() {
-            const searchKeyword = document.getElementById('search-input').value.toLowerCase().trim();
+            const searchInput = document.getElementById('search-input');
+            const searchKeyword = searchInput ? searchInput.value.toLowerCase().trim() : '';
             const container = document.getElementById('artwork-list');
+            if (!container) return;
             container.innerHTML = '';
 
             const filtered = artworksData.filter(item => {
                 const matchFloor = activeFloorFilter === 'all' || item.floor === activeFloorFilter;
                 const matchSearch = item.title.toLowerCase().includes(searchKeyword) || 
                                     item.artist.toLowerCase().includes(searchKeyword) || 
-                                    item.room.toLowerCase().includes(searchKeyword);
+                                    item.room.toLowerCase().includes(searchKeyword) ||
+                                    item.roomCode.includes(searchKeyword);
                 const matchFav = !showFavoritesOnly || favorites.has(item.id);
                 return matchFloor && matchSearch && matchFav;
             });
@@ -1203,7 +1213,7 @@
                 container.innerHTML = `
                     <div class="p-8 text-center text-gray-500 text-[15px]">
                         <i data-lucide="search-x" class="w-8 h-8 mx-auto mb-2 text-gray-600"></i>
-                        沒有找到符合條件的導覽點位
+                        沒有找到符合條件的景點
                     </div>
                 `;
                 lucide.createIcons();
@@ -1213,28 +1223,32 @@
             filtered.forEach(item => {
                 const isFav = favorites.has(item.id);
                 const isCurrent = currentArtwork && currentArtwork.id === item.id;
-                
+
                 const card = document.createElement('div');
-                card.className = `p-3.5 rounded-2xl ${isCurrent ? 'carbon-card-active' : 'carbon-card'} flex items-center justify-between cursor-pointer transition active:scale-[0.99]`;
-                card.onclick = () => selectArtwork(item.id);
+                card.className = `carbon-card rounded-2xl p-3 flex gap-3 items-center cursor-pointer transition ${isCurrent ? 'carbon-card-active' : ''}`;
+                card.onclick = () => selectArtwork(item);
 
                 card.innerHTML = `
-                    <div class="flex items-center gap-3.5 min-w-0">
-                        <img src="${item.img}" alt="${item.title}" class="w-16 h-16 rounded-xl object-cover border border-white/10 shrink-0 bg-black">
-                        <div class="min-w-0">
-                            <div class="flex items-center gap-2 mb-1">
-                                <span class="bg-ferrari-carbon border border-ferrari-red text-ferrari-yellow text-[12px] font-tech font-bold px-1.5 py-0.5 rounded leading-none">
-                                    ${item.room}
-                                </span>
-                                <span class="text-[13px] text-gray-400 font-tech truncate">${item.floor}</span>
-                            </div>
-                            <h3 class="text-[16px] font-bold text-white truncate leading-tight">${item.title}</h3>
-                            <p class="text-[13px] text-gray-400 truncate mt-0.5">${item.artist}</p>
+                    <div class="relative w-20 h-20 rounded-xl overflow-hidden bg-black flex-shrink-0 border border-white/10">
+                        <img src="${item.img}" alt="${item.title}" class="w-full h-full object-cover">
+                        <span class="absolute top-1 left-1 bg-ferrari-red/90 text-white font-tech text-[13px] font-bold px-1.5 py-0.2 rounded">
+                            ${item.roomCode}
+                        </span>
+                    </div>
+                    <div class="flex-1 min-w-0 space-y-1">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-[15px] font-bold text-white truncate">${item.title}</h3>
+                            <button onclick="event.stopPropagation(); toggleFavorite('${item.id}')" class="text-gray-400 hover:text-ferrari-yellow p-1">
+                                <i data-lucide="bookmark" class="w-3.5 h-3.5 ${isFav ? 'text-ferrari-yellow fill-ferrari-yellow' : ''}"></i>
+                            </button>
+                        </div>
+                        <p class="text-[13px] text-gray-400 truncate">${item.artist}</p>
+                        <div class="flex items-center gap-2 text-[12px] text-gray-500 font-tech">
+                            <span><i data-lucide="headphones" class="w-3 h-3 inline text-ferrari-red"></i> 語音導覽</span>
+                            <span>•</span>
+                            <span class="text-ferrari-gold font-bold">${item.floor} (${item.roomCode})</span>
                         </div>
                     </div>
-                    <button onclick="event.stopPropagation(); toggleFavorite('${item.id}')" class="p-2.5 text-gray-400 hover:text-ferrari-yellow shrink-0">
-                        <i data-lucide="bookmark" class="w-5 h-5 ${isFav ? 'fill-ferrari-yellow text-ferrari-yellow' : ''}"></i>
-                    </button>
                 `;
                 container.appendChild(card);
             });
@@ -1242,97 +1256,52 @@
             lucide.createIcons();
         }
 
-        function selectArtwork(id) {
-            const item = artworksData.find(a => a.id === id);
-            if (item) {
-                // 中斷前一個點位正在播放的語音
-                if ('speechSynthesis' in window) {
-                    window.speechSynthesis.cancel();
-                }
-                clearInterval(speechProgressTimer);
-                isPlaying = false;
-                playProgressPercent = 0;
-                const progressBar = document.getElementById('audio-progress-bar');
-                if (progressBar) progressBar.style.width = '0%';
-
-                currentArtwork = item;
-                visited.add(item.id);
-                localStorage.setItem('ducale_visited', JSON.stringify(Array.from(visited)));
-                
-                updatePlayerBarUI();
-                openArtworkModal();
-                autoSwitchFloorByRoom(item.roomCode);
-                highlightRoomOnMap(item.roomCode);
-                renderArtworkList();
-
-                // 切換點位後自動開始朗讀新點位的導覽解說
-                readAudioSpeech();
+        function selectArtwork(item) {
+            currentArtwork = item;
+            visited.add(item.id);
+            localStorage.setItem('ducale_visited', JSON.stringify([...visited]));
+            updateProgressStats();
+            renderArtworkList();
+            updatePlayerBarUI();
+            
+            // 自動切換地圖樓層
+            if (item.floor === '司法監獄與動線') {
+                switchMapFloor('1F');
+            } else if (item.floor === '庭院與入口' || item.floor === '軍事與大會議廳') {
+                switchMapFloor('2F');
+            } else {
+                switchMapFloor('3F');
             }
+
+            highlightRoomOnMap(item.roomCode);
+            openArtworkModal();
+            readAudioSpeech();
         }
 
         function selectArtworkByRoom(roomCode) {
-            const item = artworksData.find(a => a.roomCode === roomCode || a.room.includes(roomCode));
-            if (item) {
-                selectArtwork(item.id);
+            const found = artworksData.find(a => a.roomCode === roomCode);
+            if (found) {
+                selectArtwork(found);
+            } else {
+                highlightRoomOnMap(roomCode);
             }
         }
 
-        /* MODAL CONTROLS */
-        function openArtworkModal() {
-            if (!currentArtwork) currentArtwork = artworksData[0];
-            updateModalUI();
-            const modal = document.getElementById('artwork-modal');
-            if (modal) {
-                modal.classList.remove('hidden');
-            }
-        }
+        /* HIGHLIGHT & PULSE active room on map */
+        function highlightRoomOnMap(roomCode) {
+            document.querySelectorAll('.room-box').forEach(el => {
+                el.classList.remove('active-room');
+            });
+            if (!roomCode) return;
 
-        function closeArtworkModal() {
-            const modal = document.getElementById('artwork-modal');
-            if (modal) {
-                modal.classList.add('hidden');
-            }
-        }
-
-        function updateModalUI() {
-            if (!currentArtwork) return;
-            
-            document.getElementById('modal-image').src = currentArtwork.img;
-            document.getElementById('modal-room-badge').innerText = currentArtwork.room;
-            document.getElementById('modal-title').innerText = currentArtwork.title;
-            document.getElementById('modal-artist').innerText = currentArtwork.artist;
-            document.getElementById('modal-year').innerText = currentArtwork.year;
-            document.getElementById('modal-description').innerText = currentArtwork.audioText;
-
-            const highlightsList = document.getElementById('modal-highlights');
-            highlightsList.innerHTML = '';
-            if (currentArtwork.highlights) {
-                currentArtwork.highlights.forEach(hl => {
-                    const li = document.createElement('li');
-                    li.innerText = hl;
-                    highlightsList.appendChild(li);
-                });
-            }
-
-            const isFav = favorites.has(currentArtwork.id);
-            const modalFavBtnIcon = document.querySelector('#modal-fav-btn i');
-            if (modalFavBtnIcon) {
-                if (isFav) {
-                    modalFavBtnIcon.classList.add('fill-ferrari-yellow', 'text-ferrari-yellow');
-                } else {
-                    modalFavBtnIcon.classList.remove('fill-ferrari-yellow', 'text-ferrari-yellow');
+            const target = document.getElementById(`room-${roomCode}`);
+            if (target) {
+                target.classList.add('active-room');
+                const tagEl = document.getElementById('flashing-room-tag');
+                if (tagEl) {
+                    tagEl.innerHTML = `<span class="animate-pulse text-ferrari-yellow">⚡ 點位 ${roomCode} 定位中</span>`;
                 }
             }
-
-            updateModalPlayIcon();
-        }
-
-        function updatePlayerBarUI() {
-            if (!currentArtwork) return;
-            document.getElementById('player-thumb').src = currentArtwork.img;
-            document.getElementById('player-room').innerText = currentArtwork.room;
-            document.getElementById('player-title').innerText = currentArtwork.title;
-            document.getElementById('player-artist').innerText = currentArtwork.artist + ' · 威尼斯總督宮';
         }
 
         function toggleFavorite(id) {
@@ -1341,11 +1310,9 @@
             } else {
                 favorites.add(id);
             }
-            localStorage.setItem('ducale_favs', JSON.stringify(Array.from(favorites)));
+            localStorage.setItem('ducale_favs', JSON.stringify([...favorites]));
             renderArtworkList();
-            if (currentArtwork && currentArtwork.id === id) {
-                updateModalUI();
-            }
+            updateModalFavButton();
         }
 
         function toggleCurrentFavorite() {
@@ -1354,176 +1321,91 @@
             }
         }
 
-        /* SPEECH / AUDIO CONTROLS */
-        function toggleAudioSpeech() {
-            if ('speechSynthesis' in window) {
-                if (window.speechSynthesis.speaking && !window.speechSynthesis.paused) {
-                    window.speechSynthesis.pause();
-                    isPlaying = false;
-                    clearInterval(speechProgressTimer);
-                } else if (window.speechSynthesis.paused) {
-                    window.speechSynthesis.resume();
-                    isPlaying = true;
-                    startProgressSimulation();
+        function updateModalFavButton() {
+            if (!currentArtwork) return;
+            const isFav = favorites.has(currentArtwork.id);
+            const btn = document.getElementById('modal-fav-btn');
+            if (btn) {
+                btn.innerHTML = `<i data-lucide="bookmark" class="w-5 h-5 ${isFav ? 'text-ferrari-yellow fill-ferrari-yellow' : ''}"></i>`;
+                lucide.createIcons();
+            }
+        }
+
+        function updateProgressStats() {
+            const vCount = document.getElementById('visited-count');
+            const tCount = document.getElementById('total-count');
+            if (vCount) vCount.innerText = visited.size;
+            if (tCount) tCount.innerText = artworksData.length;
+        }
+
+        /* Switch Map Floor */
+        function switchMapFloor(floor) {
+            currentActiveFloor = floor;
+            const titleEl = document.getElementById('map-floor-title');
+            if (titleEl) {
+                if (floor === '3F' || floor === '行政廳堂') {
+                    titleEl.innerText = '3F UPPER HALLS (行政廳堂、參議院與兵器庫)';
+                } else if (floor === '2F' || floor === '大會議廳') {
+                    titleEl.innerText = '2F COURTYARD & MAGGIOR CONSIGLIO (大會議廳與庭院)';
                 } else {
-                    readAudioSpeech();
+                    titleEl.innerText = '1F PRISON & BRIDGE OF SIGHS (歎息橋與新監獄)';
                 }
-            } else {
-                alert('您的瀏覽器不支援語音朗讀功能');
             }
-            updateModalPlayIcon();
-        }
 
-        function readAudioSpeech() {
-            if (!('speechSynthesis' in window)) return;
-            window.speechSynthesis.cancel();
-            clearInterval(speechProgressTimer);
-            playProgressPercent = 0;
-            const progressBar = document.getElementById('audio-progress-bar');
-            if (progressBar) progressBar.style.width = '0%';
-            
-            if (!currentArtwork || !currentArtwork.audioText) return;
-
-            const utterance = new SpeechSynthesisUtterance(currentArtwork.audioText);
-            utterance.lang = 'zh-TW';
-            utterance.rate = playbackSpeed;
-
-            utterance.onstart = function() {
-                isPlaying = true;
-                updateModalPlayIcon();
-                startProgressSimulation();
-            };
-
-            utterance.onend = function() {
-                isPlaying = false;
-                clearInterval(speechProgressTimer);
-                playProgressPercent = 100;
-                if (progressBar) progressBar.style.width = '100%';
-                updateModalPlayIcon();
-            };
-
-            utterance.onerror = function() {
-                isPlaying = false;
-                clearInterval(speechProgressTimer);
-                updateModalPlayIcon();
-            };
-
-            window.speechSynthesis.speak(utterance);
-        }
-
-        function startProgressSimulation() {
-            clearInterval(speechProgressTimer);
-            const textLen = currentArtwork && currentArtwork.audioText ? currentArtwork.audioText.length : 100;
-            const estimatedDuration = (textLen / (3.5 * playbackSpeed)) * 1000;
-            const interval = 200;
-            const increment = (interval / estimatedDuration) * 100;
-
-            speechProgressTimer = setInterval(() => {
-                if (isPlaying) {
-                    playProgressPercent += increment;
-                    if (playProgressPercent >= 100) {
-                        playProgressPercent = 100;
-                        clearInterval(speechProgressTimer);
-                    }
-                    const progressBar = document.getElementById('audio-progress-bar');
-                    if (progressBar) progressBar.style.width = playProgressPercent + '%';
-                }
-            }, interval);
-        }
-
-        function updateModalPlayIcon() {
-            const playIcon = document.getElementById('play-icon');
-            const modalPlayIcon = document.getElementById('modal-play-icon');
-            const iconName = isPlaying ? 'pause' : 'play';
-
-            if (playIcon) playIcon.setAttribute('data-lucide', iconName);
-            if (modalPlayIcon) modalPlayIcon.setAttribute('data-lucide', iconName);
-            lucide.createIcons();
-        }
-
-        function changeSpeed() {
-            const speeds = [1.0, 1.25, 1.5, 0.8];
-            let nextIndex = (speeds.indexOf(playbackSpeed) + 1) % speeds.length;
-            playbackSpeed = speeds[nextIndex];
-            const btn = document.getElementById('modal-speed-btn');
-            if (btn) btn.innerText = `${playbackSpeed}x 語速`;
-
-            if (isPlaying) {
-                readAudioSpeech();
-            }
-        }
-
-        /* MAP & FLOOR INTERACTION LOGIC */
-        function autoSwitchFloorByRoom(roomCode) {
-            const codeNum = parseInt(roomCode, 10);
-            if (codeNum >= 3 && codeNum <= 11) {
-                switchMapFloor('行政廳堂');
-            } else if ([1, 2, 12, 13, 14, 18].includes(codeNum)) {
-                switchMapFloor('大會議廳');
-            } else if ([15, 16, 17].includes(codeNum)) {
-                switchMapFloor('司法與監獄');
-            }
-        }
-
-        function switchMapFloor(floorName) {
-            currentActiveFloor = floorName;
-            
             const btn3f = document.getElementById('btn-map-3f');
             const btn2f = document.getElementById('btn-map-2f');
             const btn1f = document.getElementById('btn-map-1f');
-            
-            const g3f = document.getElementById('map-graphic-3f');
-            const g2f = document.getElementById('map-graphic-2f');
-            const g1f = document.getElementById('map-graphic-1f');
+            const map3f = document.getElementById('map-graphic-3f');
+            const map2f = document.getElementById('map-graphic-2f');
+            const map1f = document.getElementById('map-graphic-1f');
 
-            const title = document.getElementById('map-floor-title');
+            const activeClass = 'text-[13px] px-2.5 py-1 rounded-lg font-bold transition whitespace-nowrap bg-ferrari-carbon border border-ferrari-red text-white';
+            const inactiveClass = 'text-[13px] px-2.5 py-1 rounded-lg font-bold transition whitespace-nowrap text-gray-400 hover:text-white';
 
-            [btn3f, btn2f, btn1f].forEach(b => {
-                if (b) {
-                    b.className = "text-[13px] px-2.5 py-1 rounded-lg font-bold transition whitespace-nowrap text-gray-400 hover:text-white";
-                }
-            });
+            if (floor === '3F' || floor === '行政廳堂') {
+                if (btn3f) btn3f.className = activeClass;
+                if (btn2f) btn2f.className = inactiveClass;
+                if (btn1f) btn1f.className = inactiveClass;
 
-            [g3f, g2f, g1f].forEach(g => {
-                if (g) g.classList.add('hidden');
-            });
+                if (map3f) map3f.classList.remove('hidden');
+                if (map2f) map2f.classList.add('hidden');
+                if (map1f) map1f.classList.add('hidden');
+            } else if (floor === '2F' || floor === '大會議廳') {
+                if (btn2f) btn2f.className = activeClass;
+                if (btn3f) btn3f.className = inactiveClass;
+                if (btn1f) btn1f.className = inactiveClass;
 
-            if (floorName === '行政廳堂') {
-                if (btn3f) btn3f.className = "text-[13px] px-2.5 py-1 rounded-lg font-bold transition whitespace-nowrap bg-ferrari-carbon border border-ferrari-red text-white";
-                if (g3f) g3f.classList.remove('hidden');
-                if (title) title.innerText = "3F UPPER HALLS (行政廳堂、參議院與兵器庫)";
-            } else if (floorName === '大會議廳') {
-                if (btn2f) btn2f.className = "text-[13px] px-2.5 py-1 rounded-lg font-bold transition whitespace-nowrap bg-ferrari-carbon border border-ferrari-red text-white";
-                if (g2f) g2f.classList.remove('hidden');
-                if (title) title.innerText = "2F MAIN HALLS (大會議廳與內庭)";
-            } else if (floorName === '司法與監獄') {
-                if (btn1f) btn1f.className = "text-[13px] px-2.5 py-1 rounded-lg font-bold transition whitespace-nowrap bg-ferrari-carbon border border-ferrari-red text-white";
-                if (g1f) g1f.classList.remove('hidden');
-                if (title) title.innerText = "1F PRISON & BRIDGE OF SIGHS (嘆息橋與新監獄)";
+                if (map2f) map2f.classList.remove('hidden');
+                if (map3f) map3f.classList.add('hidden');
+                if (map1f) map1f.classList.add('hidden');
+            } else {
+                if (btn1f) btn1f.className = activeClass;
+                if (btn3f) btn3f.className = inactiveClass;
+                if (btn2f) btn2f.className = inactiveClass;
+
+                if (map1f) map1f.classList.remove('hidden');
+                if (map3f) map3f.classList.add('hidden');
+                if (map2f) map2f.classList.add('hidden');
+            }
+
+            applyMapTransform();
+
+            if (currentArtwork) {
+                highlightRoomOnMap(currentArtwork.roomCode);
             }
         }
 
-        function highlightRoomOnMap(roomCode) {
-            document.querySelectorAll('.room-box').forEach(el => {
-                el.classList.remove('active-room');
-            });
-            document.querySelectorAll('[id^="room-"]').forEach(el => {
-                el.classList.remove('active-room');
-            });
-
-            const elements = document.querySelectorAll(`[id="room-${roomCode}"], [id="room-${roomCode}-p"]`);
-            elements.forEach(el => {
-                el.classList.add('active-room');
-            });
-
-            const tag = document.getElementById('flashing-room-tag');
-            if (tag) {
-                tag.innerText = `閃爍區域: ${roomCode} 點位`;
+        /* Map Pan & Zoom */
+        function applyMapTransform() {
+            const targetFloor = currentActiveFloor.toLowerCase().replace('行政廳堂', '3f').replace('大會議廳', '2f').replace('司法與監獄', '1f');
+            const viewport = document.getElementById(`map-viewport-${targetFloor}`);
+            if (viewport) {
+                viewport.style.transform = `translate(${mapPanX}px, ${mapPanY}px) scale(${mapScale})`;
             }
         }
 
         function zoomMap(delta) {
-            mapScale = Math.max(1.0, Math.min(3.5, mapScale + delta));
+            mapScale = Math.min(Math.max(0.8, mapScale + delta), 3.0);
             applyMapTransform();
         }
 
@@ -1534,18 +1416,9 @@
             applyMapTransform();
         }
 
-        function applyMapTransform() {
-            ['map-viewport-3f', 'map-viewport-2f', 'map-viewport-1f'].forEach(id => {
-                const el = document.getElementById(id);
-                if (el) {
-                    el.style.transform = `translate(${mapPanX}px, ${mapPanY}px) scale(${mapScale})`;
-                }
-            });
-        }
-
         function initInteractiveMapEvents() {
-            ['map-graphic-3f', 'map-graphic-2f', 'map-graphic-1f'].forEach(id => {
-                const container = document.getElementById(id);
+            ['3f', '2f', '1f'].forEach(floor => {
+                const container = document.getElementById(`map-graphic-${floor}`);
                 if (!container) return;
 
                 container.addEventListener('mousedown', (e) => {
@@ -1565,59 +1438,217 @@
                     isMapDragging = false;
                 });
 
-                // Touch support
+                let initialTouchDistance = null;
+
                 container.addEventListener('touchstart', (e) => {
                     if (e.touches.length === 1) {
                         isMapDragging = true;
                         mapDragStartX = e.touches[0].clientX - mapPanX;
                         mapDragStartY = e.touches[0].clientY - mapPanY;
+                    } else if (e.touches.length === 2) {
+                        isMapDragging = false;
+                        initialTouchDistance = Math.hypot(
+                            e.touches[0].clientX - e.touches[1].clientX,
+                            e.touches[0].clientY - e.touches[1].clientY
+                        );
                     }
-                });
+                }, { passive: true });
 
                 container.addEventListener('touchmove', (e) => {
                     if (isMapDragging && e.touches.length === 1) {
                         mapPanX = e.touches[0].clientX - mapDragStartX;
                         mapPanY = e.touches[0].clientY - mapDragStartY;
                         applyMapTransform();
+                    } else if (e.touches.length === 2 && initialTouchDistance) {
+                        const dist = Math.hypot(
+                            e.touches[0].clientX - e.touches[1].clientX,
+                            e.touches[0].clientY - e.touches[1].clientY
+                        );
+                        const delta = (dist - initialTouchDistance) * 0.005;
+                        mapScale = Math.min(Math.max(0.8, mapScale + delta), 3.0);
+                        initialTouchDistance = dist;
+                        applyMapTransform();
                     }
-                });
+                }, { passive: true });
 
                 container.addEventListener('touchend', () => {
                     isMapDragging = false;
+                    initialTouchDistance = null;
                 });
+
+                container.addEventListener('wheel', (e) => {
+                    e.preventDefault();
+                    const delta = e.deltaY < 0 ? 0.15 : -0.15;
+                    zoomMap(delta);
+                }, { passive: false });
             });
+
+            applyMapTransform();
+        }
+
+        /* Audio Player Bar UI Update */
+        function updatePlayerBarUI() {
+            if (!currentArtwork) return;
+            const thumb = document.getElementById('player-thumb');
+            const title = document.getElementById('player-title');
+            const artist = document.getElementById('player-artist');
+            const room = document.getElementById('player-room');
+
+            if (thumb) thumb.src = currentArtwork.img;
+            if (title) title.innerText = currentArtwork.title;
+            if (artist) artist.innerText = currentArtwork.artist;
+            if (room) room.innerText = `${currentArtwork.roomCode} 點位`;
+            
+            highlightRoomOnMap(currentArtwork.roomCode);
+        }
+
+        /* Modal Popup Logic */
+        function openArtworkModal() {
+            if (!currentArtwork) return;
+            const img = document.getElementById('modal-image');
+            const title = document.getElementById('modal-title');
+            const artist = document.getElementById('modal-artist');
+            const year = document.getElementById('modal-year');
+            const badge = document.getElementById('modal-room-badge');
+            const desc = document.getElementById('modal-description');
+            const modal = document.getElementById('artwork-modal');
+
+            if (img) img.src = currentArtwork.img;
+            if (title) title.innerText = currentArtwork.title;
+            if (artist) artist.innerText = currentArtwork.artist;
+            if (year) year.innerText = currentArtwork.year;
+            if (badge) badge.innerText = `${currentArtwork.roomCode} 點位`;
+            if (desc) desc.innerText = currentArtwork.audioText;
+
+            const highlightsContainer = document.getElementById('modal-highlights');
+            if (highlightsContainer && currentArtwork.highlights) {
+                highlightsContainer.innerHTML = currentArtwork.highlights.map(h => `<li>${h}</li>`).join('');
+            }
+
+            updateModalFavButton();
+            if (modal) modal.classList.remove('hidden');
+            
+            highlightRoomOnMap(currentArtwork.roomCode);
+        }
+
+        function closeArtworkModal() {
+            const modal = document.getElementById('artwork-modal');
+            if (modal) modal.classList.add('hidden');
         }
 
         function renderRouteSteps() {
             const container = document.getElementById('route-steps');
             if (!container) return;
             container.innerHTML = '';
-
-            artworksData.forEach((item, index) => {
-                const isCurrent = currentArtwork && currentArtwork.id === item.id;
-                const div = document.createElement('div');
-                div.className = `p-2.5 rounded-xl border ${isCurrent ? 'border-ferrari-red bg-ferrari-carbon' : 'border-white/10 bg-black/40'} flex items-center justify-between cursor-pointer hover:border-ferrari-red transition`;
-                div.onclick = () => selectArtwork(item.id);
-
-                div.innerHTML = `
-                    <div class="flex items-center gap-2.5 min-w-0">
-                        <span class="w-6 h-6 rounded-full bg-black border border-ferrari-red text-ferrari-yellow font-tech text-[12px] font-bold flex items-center justify-center shrink-0">
-                            ${index + 1}
-                        </span>
-                        <div class="min-w-0">
-                            <h4 class="text-[14px] font-bold text-white truncate">${item.room} ${item.title}</h4>
-                            <p class="text-[12px] text-gray-400 truncate">${item.floor}</p>
+            
+            artworksData.forEach((art, idx) => {
+                const item = document.createElement('div');
+                item.className = 'flex items-center gap-3 p-2.5 bg-black/40 rounded-xl border border-white/10 hover:border-ferrari-red cursor-pointer transition';
+                item.onclick = () => selectArtwork(art);
+                
+                item.innerHTML = `
+                    <span class="w-6 h-6 rounded-full bg-ferrari-red/20 text-ferrari-red border border-ferrari-red/40 flex items-center justify-center font-tech text-xs font-bold shrink-0">
+                        ${idx + 1}
+                    </span>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center justify-between">
+                            <h4 class="text-sm font-bold text-white truncate">${art.title}</h4>
+                            <span class="text-[10px] font-tech text-ferrari-gold">${art.roomCode}</span>
                         </div>
+                        <p class="text-[12px] text-gray-400 truncate">${art.artist}</p>
                     </div>
-                    <i data-lucide="chevron-right" class="w-4 h-4 text-gray-500 shrink-0"></i>
                 `;
-                container.appendChild(div);
+                container.appendChild(item);
             });
+        }
+
+        /* Web Speech Synthesis */
+        function readAudioSpeech() {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                isPlaying = false;
+                playProgressPercent = 0;
+                
+                const utterance = new SpeechSynthesisUtterance(currentArtwork.audioText);
+                utterance.lang = 'zh-TW';
+                utterance.rate = playbackSpeed;
+
+                utterance.onstart = () => {
+                    isPlaying = true;
+                    updatePlayIcons(true);
+                    startProgressTimer();
+                    highlightRoomOnMap(currentArtwork.roomCode);
+                };
+
+                utterance.onend = () => {
+                    isPlaying = false;
+                    playProgressPercent = 100;
+                    updatePlayIcons(false);
+                    stopProgressTimer();
+                };
+
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        function toggleAudioSpeech() {
+            if ('speechSynthesis' in window) {
+                if (window.speechSynthesis.speaking) {
+                    if (window.speechSynthesis.paused) {
+                        window.speechSynthesis.resume();
+                        isPlaying = true;
+                        updatePlayIcons(true);
+                        startProgressTimer();
+                    } else {
+                        window.speechSynthesis.pause();
+                        isPlaying = false;
+                        updatePlayIcons(false);
+                        stopProgressTimer();
+                    }
+                } else {
+                    readAudioSpeech();
+                }
+            }
+            highlightRoomOnMap(currentArtwork.roomCode);
+        }
+
+        function updatePlayIcons(playing) {
+            const icon1 = document.getElementById('play-icon');
+            const icon2 = document.getElementById('modal-play-icon');
+            if (playing) {
+                if (icon1) icon1.setAttribute('data-lucide', 'pause');
+                if (icon2) icon2.setAttribute('data-lucide', 'pause');
+            } else {
+                if (icon1) icon1.setAttribute('data-lucide', 'play');
+                if (icon2) icon2.setAttribute('data-lucide', 'play');
+            }
             lucide.createIcons();
         }
 
-        function updateProgressStats() {
-            // UI state tracker
+        function changeSpeed() {
+            const speeds = [1.0, 1.25, 1.5, 0.75];
+            const currIdx = speeds.indexOf(playbackSpeed);
+            playbackSpeed = speeds[(currIdx + 1) % speeds.length];
+            const speedBtn = document.getElementById('modal-speed-btn');
+            if (speedBtn) speedBtn.innerText = `${playbackSpeed}x 語速`;
+            if (isPlaying) {
+                readAudioSpeech();
+            }
+        }
+
+        function startProgressTimer() {
+            stopProgressTimer();
+            speechProgressTimer = setInterval(() => {
+                if (playProgressPercent < 100) {
+                    playProgressPercent += 1;
+                    const bar = document.getElementById('audio-progress-bar');
+                    if (bar) bar.style.width = `${playProgressPercent}%`;
+                }
+            }, 300);
+        }
+
+        function stopProgressTimer() {
+            if (speechProgressTimer) clearInterval(speechProgressTimer);
         }
     </script>
 </body>
