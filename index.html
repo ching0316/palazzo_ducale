@@ -1580,12 +1580,6 @@
             });
         }
 
-        // ===== 中文語音發音修正 =====
-        function prepareSpeechText(text) {
-            return text
-                .replace(/總督宮/g, '總督、公')
-                .replace(/威尼斯共和國/g, '威尼斯共合、國');
-        }
 
         /* Web Speech Synthesis */
         function readAudioSpeech() {
