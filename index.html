@@ -1289,14 +1289,26 @@
 
         /* HIGHLIGHT & PULSE active room on map */
         function highlightRoomOnMap(roomCode) {
-            document.querySelectorAll('.room-box').forEach(el => {
+            // 1. 全面清除所有帶有 active-room 的元素（包含 <g>、<circle> 或其他任何標籤）
+            document.querySelectorAll('.active-room').forEach(el => {
                 el.classList.remove('active-room');
             });
+        
             if (!roomCode) return;
-
-            const target = document.getElementById(`room-${roomCode}`);
+        
+            // 2. 找到目標 SVG 群組 <g> 或元素
+            const target = document.getElementById(`room-${roomCode}`) || 
+                           document.getElementById(`room-${roomCode}-p`);
+                           
             if (target) {
                 target.classList.add('active-room');
+                
+                // 同步清除並更新內部的 circle 確保無殘留
+                const circle = target.querySelector('.room-box');
+                if (circle) {
+                    circle.classList.add('active-room');
+                }
+        
                 const tagEl = document.getElementById('flashing-room-tag');
                 if (tagEl) {
                     tagEl.innerHTML = `<span class="animate-pulse text-ferrari-yellow">⚡ 點位 ${roomCode} 定位中</span>`;
